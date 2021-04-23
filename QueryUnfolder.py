@@ -16,6 +16,8 @@ def createPlaceDictionary(modelFile, unfoldedFile):
             for key in placeDict:
                 if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
                     placeDict[key].append(child.attrib['id'])
+
+    print(placeDict)
     return placeDict
     
 def addPlacesToIntegerSum(placeList, sumNode):
@@ -32,6 +34,8 @@ def constructUnfoldedQuery(placeDict, options):
             if 'tokens-count' in child.tag:
                 #remove this if we run into problems
                 if not child[0].text in placeDict:
+                    continue
+                if len(placeDict[child[0].text]) < 2:
                     continue
                 sumNode = ET.SubElement(parent,"integer-sum")
                 addPlacesToIntegerSum(placeDict[child[0].text], sumNode)
