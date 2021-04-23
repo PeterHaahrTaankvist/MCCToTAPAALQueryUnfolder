@@ -30,19 +30,26 @@ def constructUnfoldedQuery(placeDict, options):
     tree = ET.parse(options.queryFile)
     for parent in tree.iter():
         toRemove = []
+        toAdd = []
         for child in parent:
             if 'tokens-count' in child.tag:
                 #remove this if we run into problems
                 if not child[0].text in placeDict:
                     continue
+                #We do this to maintain the order of elements
                 if len(placeDict[child[0].text]) < 2:
-                    continue
-                sumNode = ET.SubElement(parent,"integer-sum")
-                addPlacesToIntegerSum(placeDict[child[0].text], sumNode)
-                toRemove.append(child)
+                    toAdd.append(child)
+                    toRemove.append(child)
+                else :
+                    sumNode = ET.Element("integer-sum")
+                    addPlacesToIntegerSum(placeDict[child[0].text], sumNode)
+                    toAdd.append(sumNode)
+                    toRemove.append(child)
                 
         for child in toRemove:
             parent.remove(child)
+        for child in toAdd:
+            parent.append(child)
 
     ET.register_namespace('', "http://mcc.lip6.fr/")
     with open(options.outputFile, 'w') as f:
