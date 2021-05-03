@@ -82,6 +82,63 @@ def constructUnfoldedQuery(placeDict, transDict, options):
     with open(options.outputFile, 'w') as f:
         tree.write(f, encoding='unicode')
 
+def constructUnfoldedQueryForNetFile(options):
+    with open(options.unfoldedFile) as f:
+        content = f.readlines()
+    content = [x.strip() for x in content] 
+    content = [x for x in content if x.startswith(('# tr', '# pl'))]
+    
+    tree = ET.parse(options.queryFile)
+    for parent in tree.iter():
+        toRemove = []
+        toAdd = []
+        for child in parent:
+            if 'tokens-count' in child.tag:
+                #remove this if we run into problems
+                names = []
+                #print(child[0].text)
+                for line in content:
+                    if line.startswith('# pl ' + child[0].text):
+                        names = line.split(' ')
+                        names = names[3:]
+                #print(names)
+                #remove this if we run into problems
+                if not names:
+                    continue
+                elif len(names) < 2:
+                    toAdd.append(child)
+                    toRemove.append(child)
+                else:
+                    sumNode = ET.Element("integer-sum")
+                    addPlacesToIntegerSum(names, sumNode)
+                    toAdd.append(sumNode)
+                    toRemove.append(child)
+            elif 'is-fireable' in child.tag:
+                names = []
+                for line in content:
+                    if line.startswith('# tr ' + child[0].text):
+                        names = line.split(' ')
+                        names = names[3:]
+                #remove this if we run into problems
+                if not names:
+                    continue
+                elif len(names) < 2:
+                    toAdd.append(child)
+                    toRemove.append(child)
+                else:
+                    disjunctionNode = ET.Element("disjunction")
+                    addTransitionsToDisjunction(names, disjunctionNode)
+                    toAdd.append(disjunctionNode)
+                    toRemove.append(child)
+                
+        for child in toRemove:
+            parent.remove(child)
+        for child in toAdd:
+            parent.append(child)
+
+    ET.register_namespace('', "http://mcc.lip6.fr/")
+    with open(options.outputFile, 'w') as f:
+        tree.write(f, encoding='unicode')    
     
 
 def get_options():
@@ -117,8 +174,12 @@ if __name__ == "__main__":
         sys.exit()
     """
     print(options.modelFile)
+    print(options.queryFile)
     print("im am here: " + os.getcwd())
-    placeDict, transDict = createPlaceDictionary(options.modelFile, options.unfoldedFile)
-    constructUnfoldedQuery(placeDict, transDict, options)
+    if options.unfoldedFile.endswith('.pnml'):
+        placeDict, transDict = createPlaceDictionary(options.modelFile, options.unfoldedFile)
+        constructUnfoldedQuery(placeDict, transDict, options)
+    elif options.unfoldedFile.endswith('.net'):
+        constructUnfoldedQueryForNetFile(options)
     #cleanFile(options.queryFile,outputfile)
     
