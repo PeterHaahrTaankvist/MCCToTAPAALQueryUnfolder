@@ -5,10 +5,13 @@ import xml.etree.ElementTree as ET
 import re
 def createPlaceDictionary(modelFile, unfoldedFile):
     placeDict = {}
+    transDict = {}
     tree = ET.parse(modelFile)
     for child in tree.iter():
         if('place' in child.tag):
             placeDict[child.attrib['id']] = []
+        if('transition' in child.tag):
+            transDict[child.attrib['id']] = []
 
     tree = ET.parse(unfoldedFile)
     for child in tree.iter():
@@ -16,9 +19,15 @@ def createPlaceDictionary(modelFile, unfoldedFile):
             for key in placeDict:
                 if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
                     placeDict[key].append(child.attrib['id'])
+        if('transition' in child.tag):
+            for key in transDict:
+                if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
+                    transDict[key].append(child.attrib['id'])
 
-    print(placeDict)
-    return placeDict
+
+
+    print(transDict)
+    return placeDict, transDict
     
 def addPlacesToIntegerSum(placeList, sumNode):
     for place in placeList:
@@ -26,7 +35,13 @@ def addPlacesToIntegerSum(placeList, sumNode):
         placeNode = ET.SubElement(tokensCountNode, "place")
         placeNode.text = place
 
-def constructUnfoldedQuery(placeDict, options):
+def addTransitionsToDisjunction(transitionList, disjunctionNode):
+    for transition in transitionList:
+        isfireableNode = ET.SubElement(disjunctionNode,"is-fireable")
+        transitionNode = ET.SubElement(isfireableNode, "transition")
+        transitionNode.text = transition
+
+def constructUnfoldedQuery(placeDict, transDict, options):
     tree = ET.parse(options.queryFile)
     for parent in tree.iter():
         toRemove = []
@@ -44,6 +59,18 @@ def constructUnfoldedQuery(placeDict, options):
                     sumNode = ET.Element("integer-sum")
                     addPlacesToIntegerSum(placeDict[child[0].text], sumNode)
                     toAdd.append(sumNode)
+                    toRemove.append(child)
+            elif 'is-fireable' in child.tag:
+                #remove this if we run into problems
+                if not child[0].text in transDict:
+                    continue
+                if len(transDict[child[0].text]) < 2:
+                    toAdd.append(child)
+                    toRemove.append(child)
+                else:
+                    disjunctionNode = ET.Element("disjunction")
+                    addTransitionsToDisjunction(transDict[child[0].text], disjunctionNode)
+                    toAdd.append(disjunctionNode)
                     toRemove.append(child)
                 
         for child in toRemove:
@@ -91,7 +118,7 @@ if __name__ == "__main__":
     """
     print(options.modelFile)
     print("im am here: " + os.getcwd())
-    placeDict = createPlaceDictionary(options.modelFile, options.unfoldedFile)
-    constructUnfoldedQuery(placeDict, options)
+    placeDict, transDict = createPlaceDictionary(options.modelFile, options.unfoldedFile)
+    constructUnfoldedQuery(placeDict, transDict, options)
     #cleanFile(options.queryFile,outputfile)
     
