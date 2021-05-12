@@ -12,16 +12,18 @@ def createPlaceDictionary(modelFile, unfoldedFile):
             placeDict[child.attrib['id']] = []
         if('transition' in child.tag):
             transDict[child.attrib['id']] = []
-
+    
     tree = ET.parse(unfoldedFile)
     for child in tree.iter():
         if('place' in child.tag):
             for key in placeDict:
                 if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
+                #if child.attrib['id'].replace('-','_').startswith(key.replace('-','_')):
                     placeDict[key].append(child.attrib['id'])
         if('transition' in child.tag):
             for key in transDict:
                 if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
+                #if child.attrib['id'].replace('-','_').startswith(key.replace('-','_')):
                     transDict[key].append(child.attrib['id'])
 
 
@@ -86,7 +88,7 @@ def constructUnfoldedQueryForNetFile(options):
     with open(options.unfoldedFile) as f:
         content = f.readlines()
     content = [x.strip() for x in content] 
-    content = [x for x in content if x.startswith(('# tr', '# pl'))]
+    content = [x for x in content if x.startswith(('tr', 'pl'))]
     
     tree = ET.parse(options.queryFile)
     for parent in tree.iter():
@@ -98,16 +100,16 @@ def constructUnfoldedQueryForNetFile(options):
                 names = []
                 #print(child[0].text)
                 for line in content:
-                    if line.startswith('# pl ' + child[0].text):
+                    if line.startswith('pl ' + child[0].text +' '):
                         names = line.split(' ')
-                        names = names[3:]
+                        names = names[2:]
+                        if child[0].text == 'P-masterList':
+                            print(names)
                 #print(names)
                 #remove this if we run into problems
                 if not names:
                     continue
-                elif len(names) < 2:
-                    toAdd.append(child)
-                    toRemove.append(child)
+                
                 else:
                     sumNode = ET.Element("integer-sum")
                     addPlacesToIntegerSum(names, sumNode)
@@ -116,7 +118,7 @@ def constructUnfoldedQueryForNetFile(options):
             elif 'is-fireable' in child.tag:
                 names = []
                 for line in content:
-                    if line.startswith('# tr ' + child[0].text):
+                    if line.startswith('tr ' + child[0].text):
                         names = line.split(' ')
                         names = names[3:]
                 #remove this if we run into problems
@@ -143,11 +145,11 @@ def constructUnfoldedQueryForNetFile(options):
 
 def get_options():
     optParser = optparse.OptionParser()
-    optParser.add_option("--coloredModel", type="string", dest="modelFile", default="")
-    optParser.add_option("--unfoldedModel", type="string", dest="unfoldedFile", default="")
+    optParser.add_option("-f","--coloredModel", type="string", dest="modelFile", default="")
+    optParser.add_option("-u","--unfoldedModel", type="string", dest="unfoldedFile", default="")
 
-    optParser.add_option("--queryFile", type="string", dest="queryFile", default="")
-    optParser.add_option("--outputQuery", type="string", dest="outputFile", default="")
+    optParser.add_option("-q","--queryFile", type="string", dest="queryFile", default="")
+    optParser.add_option("-o", "--outputQuery", type="string", dest="outputFile", default="")
 
     options, args = optParser.parse_args()
     return options
@@ -180,6 +182,8 @@ if __name__ == "__main__":
         placeDict, transDict = createPlaceDictionary(options.modelFile, options.unfoldedFile)
         constructUnfoldedQuery(placeDict, transDict, options)
     elif options.unfoldedFile.endswith('.net'):
+        constructUnfoldedQueryForNetFile(options)
+    elif options.unfoldedFile.endswith('dict'):
         constructUnfoldedQueryForNetFile(options)
     #cleanFile(options.queryFile,outputfile)
     
