@@ -38,6 +38,7 @@ def addPlacesToIntegerSum(placeList, sumNode):
         placeNode.text = place
 
 def addTransitionsToDisjunction(transitionList, disjunctionNode):
+    
     for transition in transitionList:
         isfireableNode = ET.SubElement(disjunctionNode,"is-fireable")
         transitionNode = ET.SubElement(isfireableNode, "transition")
@@ -109,7 +110,6 @@ def constructUnfoldedQueryForNetFile(options):
                 #remove this if we run into problems
                 if not names:
                     continue
-                
                 else:
                     sumNode = ET.Element("integer-sum")
                     addPlacesToIntegerSum(names, sumNode)
@@ -120,12 +120,13 @@ def constructUnfoldedQueryForNetFile(options):
                 for line in content:
                     if line.startswith('tr ' + child[0].text):
                         names = line.split(' ')
-                        names = names[3:]
+                        names = names[2:]
                 #remove this if we run into problems
                 if not names:
                     continue
+                #Disjunctions cannot have only 1 element, so we have to add it to parent
                 elif len(names) < 2:
-                    toAdd.append(child)
+                    addTransitionsToDisjunction(names, parent)
                     toRemove.append(child)
                 else:
                     disjunctionNode = ET.Element("disjunction")
