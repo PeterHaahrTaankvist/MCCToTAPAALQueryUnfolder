@@ -3,6 +3,8 @@ import optparse
 import os
 import xml.etree.ElementTree as ET
 import re
+from xml.dom import minidom
+
 def createPlaceDictionary(modelFile, unfoldedFile):
     placeDict = {}
     transDict = {}
@@ -118,7 +120,7 @@ def constructUnfoldedQueryForNetFile(options):
             elif 'is-fireable' in child.tag:
                 names = []
                 for line in content:
-                    if line.startswith('tr ' + child[0].text):
+                    if line.startswith('tr ' + child[0].text + ' '):
                         names = line.split(' ')
                         names = names[2:]
                 #remove this if we run into problems
@@ -126,7 +128,10 @@ def constructUnfoldedQueryForNetFile(options):
                     continue
                 #Disjunctions cannot have only 1 element, so we have to add it to parent
                 elif len(names) < 2:
-                    addTransitionsToDisjunction(names, parent)
+                    isfireableNode = ET.Element("is-fireable")
+                    transitionNode = ET.SubElement(isfireableNode, "transition")
+                    transitionNode.text = names[0]
+                    toAdd.append(isfireableNode)
                     toRemove.append(child)
                 else:
                     disjunctionNode = ET.Element("disjunction")
