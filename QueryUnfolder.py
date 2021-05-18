@@ -95,9 +95,9 @@ def constructUnfoldedQueryForNetFile(options):
     
     tree = ET.parse(options.queryFile)
     for parent in tree.iter():
-        toRemove = []
-        toAdd = []
-        for child in parent:
+        replacement_map = {}
+        #toAdd = []
+        for i, child in enumerate(parent):
             if 'tokens-count' in child.tag:
                 #remove this if we run into problems
                 names = []
@@ -113,10 +113,11 @@ def constructUnfoldedQueryForNetFile(options):
                 if not names:
                     continue
                 else:
-                    sumNode = ET.Element("integer-sum")
-                    addPlacesToIntegerSum(names, sumNode)
-                    toAdd.append(sumNode)
-                    toRemove.append(child)
+                    tokensCountNode = ET.Element("tokens-count")
+                    for place in names:
+                        placeNode = ET.SubElement(tokensCountNode, "place")
+                        placeNode.text = place
+                    replacement_map[i] = child,tokensCountNode
             elif 'is-fireable' in child.tag:
                 names = []
                 for line in content:
@@ -126,23 +127,16 @@ def constructUnfoldedQueryForNetFile(options):
                 #remove this if we run into problems
                 if not names:
                     continue
-                #Disjunctions cannot have only 1 element, so we have to add it to parent
-                elif len(names) < 2:
-                    isfireableNode = ET.Element("is-fireable")
-                    transitionNode = ET.SubElement(isfireableNode, "transition")
-                    transitionNode.text = names[0]
-                    toAdd.append(isfireableNode)
-                    toRemove.append(child)
                 else:
-                    disjunctionNode = ET.Element("disjunction")
-                    addTransitionsToDisjunction(names, disjunctionNode)
-                    toAdd.append(disjunctionNode)
-                    toRemove.append(child)
-                
-        for child in toRemove:
-            parent.remove(child)
-        for child in toAdd:
-            parent.append(child)
+                    isfireableNode = ET.Element("is-fireable")
+                    for transition in names:
+                        transitionNode = ET.SubElement(isfireableNode, "transition")
+                        transitionNode.text = transition
+                    replacement_map[i] = child,isfireableNode
+                    
+        for index, (el_to_remove, el_to_add) in replacement_map.items():
+            parent.remove(el_to_remove)
+            parent.insert(index, el_to_add)
 
     ET.register_namespace('', "http://mcc.lip6.fr/")
     with open(options.outputFile, 'w') as f:
