@@ -24,7 +24,7 @@ def createPlaceDictionary(modelFile, unfoldedFile):
                     placeDict[key].append(child.attrib['id'])
         if('transition' in child.tag):
             for key in transDict:
-                if child.attrib['id'].replace('_','').replace('-','').startswith(key.replace('-','').replace('_','')):
+                if child.attrib['id'].startswith(key + '_'):
                 #if child.attrib['id'].replace('-','_').startswith(key.replace('-','_')):
                     transDict[key].append(child.attrib['id'])
 
@@ -69,13 +69,12 @@ def constructUnfoldedQuery(placeDict, transDict, options):
                 #remove this if we run into problems
                 if not child[0].text in transDict:
                     continue
-                if len(transDict[child[0].text]) < 2:
-                    toAdd.append(child)
-                    toRemove.append(child)
                 else:
-                    disjunctionNode = ET.Element("disjunction")
-                    addTransitionsToDisjunction(transDict[child[0].text], disjunctionNode)
-                    toAdd.append(disjunctionNode)
+                    isfireableNode = ET.Element("is-fireable")
+                    for transition in transDict[child[0].text]:
+                        transitionNode = ET.SubElement(isfireableNode, "transition")
+                        transitionNode.text = transition
+                    toAdd.append(isfireableNode)
                     toRemove.append(child)
                 
         for child in toRemove:
