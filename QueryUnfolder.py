@@ -69,6 +69,10 @@ def constructUnfoldedQuery(placeDict, transDict, options):
                 #remove this if we run into problems
                 if not child[0].text in transDict:
                     continue
+                elif not transDict[child[0].text]:
+                    falseNode = ET.Element("false")
+                    toAdd.append(falseNode)
+                    toRemove.append(child)
                 else:
                     isfireableNode = ET.Element("is-fireable")
                     for transition in transDict[child[0].text]:
